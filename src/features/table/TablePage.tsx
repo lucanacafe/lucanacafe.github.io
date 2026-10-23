@@ -13,6 +13,7 @@ import { CALL, STATUS } from "@/lib/constants";
 import { asset, cn, deviceId, fmtTime, money, telHref } from "@/lib/utils";
 import type { CallType, MenuData, Order, TableInfo } from "@/types";
 import { useCart } from "./useCart";
+import { pushState, subscribeCustomer, type PushState } from "@/lib/push";
 
 const STEPS: Order["status"][] = ["new", "preparing", "served"];
 
@@ -341,6 +342,7 @@ export default function TablePage() {
           <p className="py-10 text-center text-smoke-400">Henüz siparişiniz yok.</p>
         ) : (
           <div className="space-y-4">
+            {activeOrders.length > 0 && <NotifyPrompt code={code} device={device} />}
             {orders.map((o) => (
               <OrderTrackCard
                 key={o.id}
@@ -433,5 +435,51 @@ function OrderTrackCard({ order, onCancel }: { order: Order; onCancel: () => voi
         <span className="font-bold text-gold-200">{money(order.total)}</span>
       </div>
     </div>
+  );
+}
+
+/** Müşteri: siparişi hazır olunca telefon kilitliyken de haber al */
+function NotifyPrompt({ code, device }: { code: string; device: string }) {
+  const [state, setState] = useState<PushState | null>(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    pushState().then(setState);
+  }, []);
+  if (!state || state === "unsupported" || state === "denied") return null;
+  if (state === "on") {
+    return (
+      <p className="flex items-center gap-2 rounded-2xl bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+        <Check className="h-4 w-4" /> Siparişiniz hazır olunca bildirim alacaksınız.
+      </p>
+    );
+  }
+  if (state === "needs-install") {
+    return (
+      <p className="rounded-2xl border border-gold-400/20 bg-gold-400/5 px-4 py-3 text-sm text-gold-100">
+        🔔 Siparişiniz hazır olunca bildirim almak için: Paylaş → “Ana Ekrana Ekle”, sonra uygulamadan açın.
+      </p>
+    );
+  }
+  return (
+    <button
+      disabled={busy}
+      onClick={async () => {
+        setBusy(true);
+        try {
+          await subscribeCustomer(code, device);
+          toast.success("Hazır olunca haber vereceğiz 🔔");
+          setState("on");
+        } catch (e) {
+          toast.error((e as Error).message);
+        } finally {
+          setBusy(false);
+        }
+      }}
+      className="flex w-full items-center gap-3 rounded-2xl border border-gold-400/30 bg-gold-400/10 px-4 py-3 text-left text-sm font-semibold text-gold-100 transition active:scale-[0.99]"
+    >
+      <span className="text-xl">🔔</span>
+      <span className="flex-1">Siparişim hazır olunca bildirim gönder</span>
+      <ChevronRight className="h-4 w-4" />
+    </button>
   );
 }

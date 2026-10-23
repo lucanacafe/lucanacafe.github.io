@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Button, Field } from "@/components/ui";
 import { auth } from "@/lib/api/admin";
 import { useAuth } from "../auth";
+import { PushCard } from "../components/PushControls";
 
 export function PasswordForm({ onDone }: { onDone?: () => void }) {
   const [oldPw, setOld] = useState("");
@@ -71,6 +72,9 @@ export default function Account() {
         <h3 className="mb-4 font-display text-xl font-semibold">Şifre değiştir</h3>
         <p className="mb-4 text-xs text-smoke-500">Şifre değişince diğer cihazlardaki oturumlarınız kapanır.</p>
         <PasswordForm />
+      </div>
+      <div className="md:col-span-2">
+        <PushCard />
       </div>
     </div>
   );

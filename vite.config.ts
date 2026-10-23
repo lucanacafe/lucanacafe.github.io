@@ -44,6 +44,9 @@ export default defineConfig(({ mode }) => {
           globPatterns: ["**/*.{js,css,html,svg,png,webp,woff2}"],
           navigateFallback: `${base}index.html`,
           maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
+          // Web Push bildirim işleyicisi (public/push-sw.js)
+          importScripts: ["push-sw.js"],
+          globIgnores: ["push-sw.js"],
           runtimeCaching: [
             {
               // Panelden yüklenen ürün görselleri

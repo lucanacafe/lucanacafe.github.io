@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { auth } from "@/lib/api/admin";
 import { sessionToken } from "@/lib/supabase";
+import { unsubscribe as pushUnsubscribe } from "@/lib/push";
 import type { StaffUser } from "@/types";
 
 interface AuthCtx {
@@ -56,6 +57,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return me;
     },
     async logout() {
+      // Bu cihaz artık personel bildirimi almasın (token hâlâ geçerliyken sil)
+      await pushUnsubscribe();
       await auth.logout().catch(() => {});
       setUser(null);
     },

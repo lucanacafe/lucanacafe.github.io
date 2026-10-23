@@ -41,6 +41,7 @@ Lucana'nın web sitesi, QR menüsü, masadan sipariş sistemi ve yönetim paneli
 | Personel | Hesap açma, rol atama, şifre sıfırlama, pasife alma, tüm oturumları kapatma |
 | İşlem geçmişi | Kim, ne zaman, ne yaptı (audit log) |
 | Ayarlar | QR siparişi / çağrıları aç-kapa, işletme bilgileri, duyuru bandı, Wi-Fi |
+| Hesabım | Şifre değiştirme, **bu cihazda bildirimleri aç/kapat**, test bildirimi |
 
 ---
 
@@ -66,6 +67,7 @@ BigLoft Yönetim'deki modelin sıkılaştırılmış hâli:
 
 - **Müşteri siparişleri:** Fiyatlar her zaman sunucuda hesaplanır; stok satır kilidiyle düşülür. Masa QR'ı gizli bir kod içerir (tahmin edilemez), panelden tek tıkla yenilenebilir. Cihaz başına hız sınırları (15 sn'de 1 sipariş, saatte 12; 10 dk'da 6 çağrı).
 - **Realtime:** Sunucu yalnızca veri içermeyen "değişti" sinyali yayınlar; veriler her zaman yetki kontrollü RPC'lerden okunur. Realtime koparsa periyodik yenileme devreye girer.
+- **Bildirimler (Web Push / VAPID):** Uygulama veya telefon kapalıyken de çalışır. Personel: yeni QR sipariş (seviye ≥ 30) ve garson/köz/hesap çağrıları (seviye ≥ 40). Müşteri: QR sayfasında izin verirse kendi siparişinin "hazırlanıyor / servis edildi" bildirimi. Olay veritabanında olduğu an `lucana._push` → pg_net → `lucana-push` Edge Function (gizli header ile) → web-push. Ölü abonelikler otomatik silinir; çıkış yapan personelin cihaz aboneliği kaldırılır. iPhone'da yalnızca "Ana Ekrana Ekle" ile yüklenmiş uygulamada çalışır (iOS 16.4+).
 - **Görsel yükleme:** `lucana-upload` Edge Function'ı token'ı doğrular (seviye ≥ 80), dosya türü/boyutunu kontrol eder, service role ile yükler. Service key asla tarayıcıya gitmez.
 - `anon` anahtarı herkese açıktır; güvenlik bu anahtara değil yukarıdaki kurallara dayanır.
 
@@ -93,8 +95,8 @@ src/
   styles/         Tailwind + tema
   types/
 supabase/
-  migrations/     0001 çekirdek+auth · 0002 müşteri RPC · 0003 panel RPC · 0004 seed · 9999 yetkiler
-  functions/      lucana-upload (görsel yükleme)
+  migrations/     0001 çekirdek+auth · 0002 müşteri RPC · 0003 panel RPC · 0004 seed · 0005 push · 9999 yetkiler
+  functions/      lucana-upload (görsel yükleme) · lucana-push (Web Push gönderici)
 scripts/
   db.mjs          migration / şema açma / bucket / kurucu hesap (Management API)
   gen-icons.py    PWA ikonları + favicon + paylaşım görseli
@@ -121,6 +123,7 @@ node scripts/db.mjs migrate 0005     # yalnızca yeni bir migration (+ yetkiler)
 node scripts/db.mjs expose           # lucana şemasını REST API'ye aç (bir kez)
 node scripts/db.mjs bucket           # görsel bucket'ı (bir kez)
 node scripts/db.mjs bootstrap        # kurucu hesabı (bir kez) → ADMIN_GIRIS.local.txt
+node scripts/db.mjs push             # VAPID anahtarları + push yapılandırması (bir kez)
 ```
 
 Yeni özellik eklerken: `supabase/migrations/0005_xxx.sql` oluşturun. Adı `_` ile başlamayan her yeni fonksiyon `9999_grants.sql` ile otomatik olarak API'ye açılır; iç yardımcıları `_` ile adlandırın.
@@ -129,6 +132,7 @@ Yeni özellik eklerken: `supabase/migrations/0005_xxx.sql` oluşturun. Adı `_` 
 
 ```bash
 npx supabase functions deploy lucana-upload --no-verify-jwt --use-api --project-ref <PROJE_REF>
+npx supabase functions deploy lucana-push   --no-verify-jwt --use-api --project-ref <PROJE_REF>
 ```
 
 ---
@@ -143,6 +147,7 @@ npx supabase functions deploy lucana-upload --no-verify-jwt --use-api --project-
 | `VITE_SUPABASE_ANON_KEY` | `eyJ...` (herkese açık anahtar) |
 | `VITE_SITE_URL` | `https://lucanacafe.github.io/` |
 | `VITE_BASE` | `/` |
+| `VITE_VAPID_PUBLIC_KEY` | `B...` (Web Push public key, herkese açık) |
 
 ### Özel domain bağlama (ör. `lucanacafe.com`)
 

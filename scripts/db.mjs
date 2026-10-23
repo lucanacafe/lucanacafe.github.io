@@ -6,6 +6,7 @@
 //   node scripts/db.mjs expose             → "lucana" şemasını REST API'ye açar
 //   node scripts/db.mjs bucket             → görsel depolama bucket'ını oluşturur
 //   node scripts/db.mjs bootstrap          → kurucu hesabı yoksa rastgele şifreyle oluşturur
+//   node scripts/db.mjs push               → Web Push (VAPID) anahtarları + sunucu yapılandırması
 //   node scripts/db.mjs sql "select 1"     → tek seferlik sorgu
 //
 // Gerekli .env: SUPABASE_PROJECT_REF, SUPABASE_ACCESS_TOKEN
@@ -98,10 +99,59 @@ async function bootstrap() {
   console.log(`Kurucu oluşturuldu. Bilgiler: ${out}`);
 }
 
+// Web Push: VAPID anahtarları (.env'de yoksa üretir) + Edge Function secret'ları + DB yapılandırması
+async function push() {
+  const { generateKeyPairSync, randomBytes: rb } = await import("node:crypto");
+  const envPath = join(root, ".env");
+  let env = readFileSync(envPath, "utf8");
+  const get = (k) => env.match(new RegExp(`^${k}=(.*)$`, "m"))?.[1]?.trim();
+  const put = (k, v) => {
+    env = new RegExp(`^${k}=`, "m").test(env) ? env.replace(new RegExp(`^${k}=.*$`, "m"), `${k}=${v}`) : env.trimEnd() + `\n${k}=${v}\n`;
+  };
+
+  let pub = get("VITE_VAPID_PUBLIC_KEY");
+  let priv = get("LUCANA_VAPID_PRIVATE_KEY");
+  if (!pub || !priv) {
+    const { publicKey, privateKey } = generateKeyPairSync("ec", { namedCurve: "prime256v1" });
+    const jwk = privateKey.export({ format: "jwk" });
+    const pubJwk = publicKey.export({ format: "jwk" });
+    const x = Buffer.from(pubJwk.x, "base64url");
+    const y = Buffer.from(pubJwk.y, "base64url");
+    pub = Buffer.concat([Buffer.from([4]), x, y]).toString("base64url");
+    priv = jwk.d;
+    put("VITE_VAPID_PUBLIC_KEY", pub);
+    put("LUCANA_VAPID_PRIVATE_KEY", priv);
+    console.log("Yeni VAPID anahtarları üretildi (.env)");
+  }
+  let secret = get("LUCANA_PUSH_SECRET");
+  if (!secret) {
+    secret = rb(32).toString("hex");
+    put("LUCANA_PUSH_SECRET", secret);
+  }
+  writeFileSync(envPath, env);
+
+  const res = await fetch(`${API}/secrets`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify([
+      { name: "LUCANA_VAPID_PUBLIC_KEY", value: pub },
+      { name: "LUCANA_VAPID_PRIVATE_KEY", value: priv },
+      { name: "LUCANA_VAPID_SUBJECT", value: "mailto:lucana.cafe@example.com" },
+      { name: "LUCANA_PUSH_SECRET", value: secret },
+    ]),
+  });
+  if (!res.ok) throw new Error("Secret kaydedilemedi: " + (await res.text()));
+
+  const url = `https://${REF}.supabase.co/functions/v1/lucana-push`;
+  await sql(`insert into lucana.app_config(key, value) values ('push_url', '${url}'), ('push_secret', '${secret}')
+             on conflict (key) do update set value = excluded.value`);
+  console.log("Push yapılandırıldı. Public key:", pub);
+}
+
 const [cmd, arg] = process.argv.slice(2);
-const run = { migrate: () => migrate(arg), expose, bucket, bootstrap, sql: async () => console.log(JSON.stringify(await sql(arg), null, 2)) }[cmd];
+const run = { migrate: () => migrate(arg), expose, bucket, bootstrap, push, sql: async () => console.log(JSON.stringify(await sql(arg), null, 2)) }[cmd];
 if (!run) {
-  console.log("Komutlar: migrate [önek] | expose | bucket | bootstrap | sql \"...\"");
+  console.log("Komutlar: migrate [önek] | expose | bucket | bootstrap | push | sql \"...\"");
   process.exit(1);
 }
 run().catch((e) => {

@@ -27,6 +27,7 @@ import { unlockAudio } from "@/lib/media";
 import { cn } from "@/lib/utils";
 import { useAuth } from "./auth";
 import { PulseProvider, usePulse } from "./pulse";
+import { PushBanner } from "./components/PushControls";
 
 interface NavItem {
   to: string;
@@ -166,7 +167,10 @@ function Inner({ children }: { children: ReactNode }) {
         </button>
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 pb-28 pt-5 lg:px-8 lg:pb-10">{children}</main>
+      <main className="mx-auto max-w-7xl px-4 pb-28 pt-5 lg:px-8 lg:pb-10">
+        <PushBanner />
+        {children}
+      </main>
 
       {/* Mobil alt gezinme */}
       <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t hairline bg-night-900/95 pb-safe backdrop-blur-xl lg:hidden">
