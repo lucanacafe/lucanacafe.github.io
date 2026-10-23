@@ -8,3 +8,4 @@ dist
 Instagram.html
 Instagram_files/
 supabase/.temp
+*.tsbuildinfo
