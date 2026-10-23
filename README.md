@@ -6,7 +6,7 @@ Lucana'nın web sitesi, QR menüsü, masadan sipariş sistemi ve yönetim paneli
 
 | | |
 |---|---|
-| Canlı site | https://perpsfunds.github.io/lucana/ |
+| Canlı site | https://perpsfunds.fun/lucana/ (geçici — perpsfunds hesabının domaini altında; özel domain alınınca taşınır) |
 | Menü | `/menu` |
 | Masa (QR) | `/m/<masa-kodu>` |
 | Yönetim paneli | `/panel` |
@@ -140,7 +140,7 @@ npx supabase functions deploy lucana-upload --no-verify-jwt --use-api --project-
 |---|---|
 | `VITE_SUPABASE_URL` | `https://xxxx.supabase.co` |
 | `VITE_SUPABASE_ANON_KEY` | `eyJ...` (herkese açık anahtar) |
-| `VITE_SITE_URL` | `https://perpsfunds.github.io/lucana/` |
+| `VITE_SITE_URL` | `https://perpsfunds.fun/lucana/` |
 | `VITE_BASE` | `/lucana/` |
 
 ### Özel domain bağlama (ör. `lucanacafe.com`)
