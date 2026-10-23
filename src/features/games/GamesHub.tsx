@@ -11,7 +11,7 @@ const GAMES = [
     to: "/oyun/bahce",
     emoji: "🌱",
     title: "Lucana Bahçesi",
-    desc: "Nane, çilek, kahve, çay… Ek, büyüt, hasat et. Komşularını sula, birlikte büyüyün!",
+    desc: "Buğday, çilek, üzüm, kahve… Ek, büyüt, hasat et. Komşularını sula, birlikte büyüyün!",
     tag: "Herkes birlikte",
     grad: "from-emerald-500/30 via-night-800",
   },

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui";
 import { LiveFeed } from "@/components/customer/LiveFeed";
 import { memberApi, type BoardRow } from "@/lib/api/member";
 import { cn } from "@/lib/utils";
+import { CropSprite, tileBg } from "@/features/games/farmArt";
 
 const fadeUp = {
   initial: { opacity: 0, y: 28 },
@@ -151,7 +152,8 @@ export function LoyaltySection() {
 
 /** Oyun köşesi tanıtımı (şans oyunu yok) */
 export function GamesTeaser() {
-  const crops = ["🌿", "🍓", "🍋", "🍎", "🍈", "☕", "🫖", "🌱", "🧺"];
+  // atlas satırı + aşama (5 = olgun) — tarlada farklı büyüme evreleri
+  const plots: [number, number][] = [[1, 5], [3, 4], [7, 5], [0, 5], [4, 3], [5, 5], [6, 5], [2, 2], [1, 1]];
   return (
     <section className="container py-20">
       <div className="grid items-center gap-10 lg:grid-cols-2">
@@ -162,7 +164,7 @@ export function GamesTeaser() {
             <span className="text-gold italic">bahçeni büyüt.</span>
           </h2>
           <p className="mt-5 max-w-md text-lg text-smoke-300">
-            Lucana Bahçesi'nde nane, çilek, kahve, çay ek; hasat et, seviye atla. Masadaki arkadaşlarının bahçesini sula, birlikte büyüyün.
+            Lucana Bahçesi'nde buğday, çilek, limon, üzüm, kahve ek; hasat et, seviye atla. Masadaki arkadaşlarının bahçesini sula, birlikte büyüyün.
             Ya da Lucana Blok'ta haftanın rekorunu kır.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
@@ -178,16 +180,16 @@ export function GamesTeaser() {
             </Link>
           </div>
         </motion.div>
-        <motion.div {...fadeUp} className="card bg-gradient-to-br from-emerald-500/15 to-transparent p-5">
-          <div className="grid grid-cols-3 gap-3">
-            {crops.map((c, i) => (
-              <div key={i} className="flex aspect-square items-center justify-center rounded-2xl border border-white/5 bg-[radial-gradient(circle_at_50%_70%,#4a3220,#2a1b11)]">
+        <motion.div {...fadeUp} className="card p-5">
+          <div className="grid grid-cols-3 gap-2.5 rounded-2xl border-4 border-[#5a3b22] p-3" style={tileBg("grass", 40)}>
+            {plots.map(([row, col], i) => (
+              <div key={i} className="relative aspect-square overflow-hidden rounded-xl border-2 border-[#3d2716] shadow-[0_3px_0_#2a1b11]" style={tileBg("soil", 36)}>
                 <motion.span
-                  className="text-4xl"
-                  animate={{ scale: [0.85, 1.1, 0.85], y: [0, -4, 0] }}
-                  transition={{ repeat: Infinity, duration: 2.4, delay: i * 0.25 }}
+                  className="absolute inset-[8%]"
+                  animate={col === 5 ? { y: [0, -3, 0] } : undefined}
+                  transition={{ repeat: Infinity, duration: 2.2, delay: i * 0.2 }}
                 >
-                  {c}
+                  <CropSprite row={row} col={col} className="h-full w-full" />
                 </motion.span>
               </div>
             ))}

@@ -266,7 +266,7 @@ export default function TablePage() {
               <span className="min-w-0 flex-1">
                 <span className="block text-sm font-semibold">⭐ {member.points.toLocaleString("tr-TR")} puanın var</span>
                 <span className="text-xs text-smoke-400">
-                  {member.points >= member.rates.redeem ? `${money(member.discount_value)} indirim olarak kullanabilirsin · Bahçende hasat seni bekliyor` : `Her 1 ₺ = ${member.rates.earn} puan · Bahçeni kur, ücretsiz nane ek 🌿`}
+                  {member.points >= member.rates.redeem ? `${money(member.discount_value)} indirim olarak kullanabilirsin · Bahçende hasat seni bekliyor` : `Her 1 ₺ = ${member.rates.earn} puan · Bahçeni kur, ücretsiz buğday ek 🌾`}
                 </span>
               </span>
               <ChevronRight className="h-5 w-5 text-smoke-500" />

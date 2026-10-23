@@ -38,7 +38,7 @@ Lucana'nın web sitesi, QR menüsü, masadan sipariş sistemi ve yönetim paneli
 
 ### Oyunlar (şans oyunu YOK)
 Türkiye mevzuatı gereği (TCK 228) bahis ve sonucu talihe bağlı oyunlar **bilinçli olarak yoktur**:
-- **Lucana Bahçesi** (FarmVille tarzı): tohum ek → sabit süre → sabit hasat. Ürün maliyeti, süresi ve verimi önceden belli. Komşunun büyüyen ürününü sulamak onu %15 hızlandırır, sulayana teşekkür puanı verir. Seviye atladıkça yeni ürünler açılır, puanla yeni tarla alınır.
+- **Lucana Bahçesi** (FarmVille tarzı, gerçek piksel sanatı — [josehzz, CC0](https://opengameart.org/content/farming-crops-16x16); ürünlerin 5 büyüme evresi, sürülmüş/ıslak toprak, çimen karoları): tohum ek → sabit süre → sabit hasat. Ürün maliyeti, süresi ve verimi önceden belli. Komşunun büyüyen ürününü sulamak onu %15 hızlandırır, sulayana teşekkür puanı verir. Seviye atladıkça yeni ürünler açılır, puanla yeni tarla alınır.
 - **Lucana Blok** (Tetris): beceri oyunu, bahissiz; ödül satır sayısına bağlı.
 - **Ödül havuzu:** Oyunların dağıttığı tüm puan admin'in doldurduğu havuzdan çıkar; tohum/tarla bedelleri havuza döner. Kişi başı günlük tavanlar (hasat kârı, sulama, Blok) Ayarlar'dan belirlenir.
 
@@ -111,12 +111,13 @@ src/
   styles/         Tailwind + tema
   types/
 supabase/
-  migrations/     0001 çekirdek+auth · 0002 müşteri RPC · 0003 panel RPC · 0004 seed · 0005 push · 0006 üyelik/puan/sosyal · 0007 ödül havuzu + Blok · 0008 üye push · 0009 Bahçe · 9999 yetkiler
+  migrations/     0001 çekirdek+auth · 0002 müşteri RPC · 0003 panel RPC · 0004 seed · 0005 push · 0006 üyelik/puan/sosyal · 0007 ödül havuzu + Blok · 0008 üye push · 0009 Bahçe · 0010 Bahçe sprite eşlemesi · 9999 yetkiler
   functions/      lucana-upload (görsel yükleme) · lucana-push (Web Push gönderici)
 scripts/
   reset-test-data.sql  test verisini temizler (menü, masa, personel kalır)
   db.mjs          migration / şema açma / bucket / kurucu hesap (Management API)
   gen-icons.py    PWA ikonları + favicon + paylaşım görseli
+  build-farm-assets.py  Bahçe sprite atlası + toprak/çimen karoları → public/game/
   postbuild.mjs   GitHub Pages SPA desteği (404.html)
 public/images/    Instagram'dan optimize edilmiş görseller (WebP)
 ```

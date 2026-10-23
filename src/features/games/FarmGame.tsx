@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { Droplets, Lock, Plus, Sprout, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Button, Modal, PageLoader } from "@/components/ui";
@@ -8,14 +8,15 @@ import { useMember } from "@/features/member/MemberContext";
 import { farmApi, type Crop, type Farm, type Neighbor, type Plot } from "@/lib/api/member";
 import { cn } from "@/lib/utils";
 import { fmt, GamePage, useGameInfo, useSyncPoints } from "./shared";
+import { CropSprite, stageCol, tileBg } from "./farmArt";
 
 function dur(secs: number) {
   if (secs <= 0) return "hazır";
   const h = Math.floor(secs / 3600);
   const m = Math.floor((secs % 3600) / 60);
   const s = Math.floor(secs % 60);
-  if (h) return `${h} sa ${m} dk`;
-  if (m) return `${m} dk ${s.toString().padStart(2, "0")} sn`;
+  if (h) return m ? `${h} sa ${m} dk` : `${h} sa`;
+  if (m) return s ? `${m} dk ${s.toString().padStart(2, "0")} sn` : `${m} dk`;
   return `${s} sn`;
 }
 
@@ -91,7 +92,7 @@ export default function FarmGame() {
     apply(r);
     setPlanting(null);
     if (crop.cost) sync((member?.points ?? 0) - crop.cost);
-    toast.success(`${crop.emoji} ${crop.name} ekildi`, { description: `${dur(crop.grow_secs)} sonra ${crop.yield} ⭐` });
+    toast.success(`${crop.name} ekildi 🌱`, { description: `${dur(crop.grow_secs)} sonra ${crop.yield} ⭐` });
   }
 
   async function water(p: Plot) {
@@ -126,7 +127,7 @@ export default function FarmGame() {
       rules={
         <>
           <b>Şans yok, bahis yok.</b> Tohum ek, süre dolunca hasat et — ne kadar puan alacağın baştan belli. Bazı tohumlar ücretsiz
-          (Nane), bazıları puanla alınır ve hasatta fazlasıyla döner. Komşularının büyüyen ürünlerini <b>sula</b>: onların ürünü %15
+          (Buğday), bazıları puanla alınır ve hasatta fazlasıyla döner. Komşularının büyüyen ürünlerini <b>sula</b>: onların ürünü %15
           hızlanır, sana teşekkür puanı gelir. Hasat ettikçe seviye atlar, yeni ürünlerin kilidini açarsın.
           {info && ` Günlük hasat kârı tavanı: ${fmt(info.farm_cap)} puan.`}
         </>
@@ -157,7 +158,10 @@ export default function FarmGame() {
           )}
 
           {/* tarlalar */}
-          <div className="mt-4 grid grid-cols-3 gap-2.5">
+          <div
+            className="mt-4 grid grid-cols-3 gap-2.5 rounded-3xl border-4 border-[#5a3b22] p-3 shadow-[inset_0_0_0_2px_rgba(0,0,0,.35)]"
+            style={tileBg("grass", 40)}
+          >
             {farm.plots.map((p) => (
               <PlotTile
                 key={p.idx}
@@ -175,7 +179,7 @@ export default function FarmGame() {
               <button
                 onClick={buyPlot}
                 disabled={busy === "buy"}
-                className="flex aspect-square flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed border-white/10 text-smoke-400 hover:border-gold-400/40"
+                className="flex aspect-square flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-white/40 bg-black/25 text-white hover:bg-black/35"
               >
                 <Plus className="h-6 w-6" />
                 <span className="text-xs font-semibold">Yeni tarla</span>
@@ -248,7 +252,7 @@ export default function FarmGame() {
                   locked || poor ? "border-white/5 opacity-50" : "border-white/10 hover:border-emerald-400/40",
                 )}
               >
-                <span className="text-4xl">{c.emoji}</span>
+                <CropSprite row={c.sprite_row} col={0} className="h-12 w-12 shrink-0" />
                 <span className="min-w-0 flex-1">
                   <span className="block font-display text-xl font-semibold">{c.name}</span>
                   <span className="text-xs text-smoke-400">
@@ -292,19 +296,14 @@ function PlotTile({
   onHarvest: () => void;
   onWater: () => void;
 }) {
-  const soil = "bg-[radial-gradient(circle_at_50%_70%,#4a3220,#2a1b11)]";
+  const frame = "relative flex aspect-square flex-col items-center justify-end overflow-hidden rounded-xl border-2 border-[#3d2716] shadow-[0_3px_0_#2a1b11]";
   if (!plot.crop || !crop) {
     return (
-      <button
-        disabled={visiting}
-        onClick={onPlant}
-        className={cn("flex aspect-square flex-col items-center justify-center gap-1 rounded-2xl border border-white/5", soil, !visiting && "hover:border-emerald-400/40")}
-      >
+      <button disabled={visiting} onClick={onPlant} className={cn(frame, "justify-center", !visiting && "hover:brightness-110")} style={tileBg("soil", 36)}>
         {!visiting && (
-          <>
-            <Sprout className="h-6 w-6 text-emerald-300/60" />
-            <span className="text-xs font-semibold text-smoke-400">Ek</span>
-          </>
+          <span className="flex items-center gap-1 rounded-full bg-black/45 px-2.5 py-1 text-xs font-bold text-white">
+            <Sprout className="h-3.5 w-3.5 text-emerald-300" /> Ek
+          </span>
         )}
       </button>
     );
@@ -315,41 +314,42 @@ function PlotTile({
   const progress = Math.min(1, Math.max(0, 1 - (left * 1000) / total));
   const isReady = left <= 0;
   const canWater = visiting && !isReady && !plot.watered_by_me && plot.waters < 5;
+  const row = crop.sprite_row;
 
   return (
     <motion.button
       layout
       onClick={isReady && !visiting ? onHarvest : canWater ? onWater : undefined}
-      className={cn(
-        "relative flex aspect-square flex-col items-center justify-center overflow-hidden rounded-2xl border",
-        soil,
-        isReady ? "border-gold-300/60 shadow-glow" : "border-white/5",
-      )}
+      className={cn(frame, isReady && "ring-2 ring-gold-300 ring-offset-2 ring-offset-transparent")}
+      style={tileBg(plot.waters > 0 ? "soil-wet" : "soil", 36)}
     >
-      <AnimatePresence>
-        <motion.span
-          key={isReady ? "r" : "g"}
-          initial={{ scale: 0.6 }}
-          animate={isReady ? { scale: [1, 1.12, 1], y: [0, -4, 0] } : { scale: 0.45 + progress * 0.55 }}
-          transition={isReady ? { repeat: Infinity, duration: 1.4 } : { duration: 0.5 }}
-          className="text-4xl drop-shadow"
-        >
-          {progress < 0.25 && !isReady ? "🌱" : crop.emoji}
-        </motion.span>
-      </AnimatePresence>
-      <span className={cn("mt-1 text-[11px] font-semibold", isReady ? "text-gold-100" : "text-smoke-300")}>
+      <motion.span
+        key={stageCol(progress, isReady)}
+        initial={{ scale: 0.7, opacity: 0 }}
+        animate={isReady ? { scale: [1, 1.08, 1], y: [0, -3, 0], opacity: 1 } : { scale: 1, opacity: 1 }}
+        transition={isReady ? { repeat: Infinity, duration: 1.4 } : { duration: 0.35 }}
+        className="absolute inset-[8%]"
+      >
+        <CropSprite row={row} col={stageCol(progress, isReady)} className="h-full w-full drop-shadow-[0_2px_0_rgba(0,0,0,.35)]" />
+      </motion.span>
+      <span
+        className={cn(
+          "relative mb-1 rounded-full px-2 py-0.5 text-[10px] font-bold",
+          isReady ? "bg-gold-300 text-night-950" : "bg-black/55 text-white",
+        )}
+      >
         {isReady ? (visiting ? "Hazır" : busy === `h${plot.idx}` ? "…" : "Topla!") : dur(left)}
       </span>
       {!isReady && (
-        <span className="absolute inset-x-2 bottom-2 h-1 overflow-hidden rounded-full bg-black/40">
+        <span className="absolute inset-x-1.5 bottom-0.5 h-1 overflow-hidden rounded-full bg-black/50">
           <span className="block h-full bg-emerald-400" style={{ width: `${progress * 100}%` }} />
         </span>
       )}
       {plot.waters > 0 && (
-        <span className="absolute right-1.5 top-1.5 rounded-full bg-sky-500/30 px-1.5 text-[10px] font-bold text-sky-100">💧{plot.waters}</span>
+        <span className="absolute right-1 top-1 rounded-full bg-sky-600/80 px-1.5 text-[10px] font-bold text-white">💧{plot.waters}</span>
       )}
       {canWater && (
-        <span className="absolute left-1.5 top-1.5 rounded-full bg-sky-500 px-2 py-0.5 text-[10px] font-bold text-white">
+        <span className="absolute left-1 top-1 animate-pulse rounded-full bg-sky-500 px-2 py-0.5 text-[10px] font-bold text-white">
           {busy === `w${plot.idx}` ? "…" : "Sula"}
         </span>
       )}

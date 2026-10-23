@@ -77,6 +77,8 @@ export interface Crop {
   yield: number;
   grow_secs: number;
   min_level: number;
+  /** public/game/crops.png satırı */
+  sprite_row: number;
 }
 
 export interface Plot {

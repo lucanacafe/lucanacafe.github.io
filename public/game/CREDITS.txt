@@ -1,0 +1,5 @@
+Ürün sprite'ları: "Farming crops 16x16" — josehzz (https://opengameart.org/users/josehzz)
+Lisans: CC0 1.0 — https://creativecommons.org/publicdomain/zero/1.0/
+Kaynak: https://opengameart.org/content/farming-crops-16x16
+
+Toprak/çimen karoları: Lucana için üretildi (scripts/build-farm-assets.py).
