@@ -5,7 +5,7 @@ import { fileURLToPath, URL } from "node:url";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
-  // GitHub Pages proje sitesi: /lucana/  — özel domain bağlanınca: /
+  // lucanacafe.github.io ve özel domain: "/" (proje sitesi olsaydı "/repo-adi/")
   const base = env.VITE_BASE || "/";
 
   return {

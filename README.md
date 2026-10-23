@@ -6,7 +6,8 @@ Lucana'nın web sitesi, QR menüsü, masadan sipariş sistemi ve yönetim paneli
 
 | | |
 |---|---|
-| Canlı site | https://perpsfunds.fun/lucana/ (geçici — perpsfunds hesabının domaini altında; özel domain alınınca taşınır) |
+| Canlı site | https://lucanacafe.github.io/ |
+| Repo | https://github.com/lucanacafe/lucanacafe.github.io |
 | Menü | `/menu` |
 | Masa (QR) | `/m/<masa-kodu>` |
 | Yönetim paneli | `/panel` |
@@ -108,7 +109,7 @@ public/images/    Instagram'dan optimize edilmiş görseller (WebP)
 ```bash
 cp .env.example .env     # değerleri doldurun
 npm install
-npm run dev              # http://localhost:5173/lucana/
+npm run dev              # http://localhost:5173/
 npm run build
 ```
 
@@ -140,16 +141,16 @@ npx supabase functions deploy lucana-upload --no-verify-jwt --use-api --project-
 |---|---|
 | `VITE_SUPABASE_URL` | `https://xxxx.supabase.co` |
 | `VITE_SUPABASE_ANON_KEY` | `eyJ...` (herkese açık anahtar) |
-| `VITE_SITE_URL` | `https://perpsfunds.fun/lucana/` |
-| `VITE_BASE` | `/lucana/` |
+| `VITE_SITE_URL` | `https://lucanacafe.github.io/` |
+| `VITE_BASE` | `/` |
 
 ### Özel domain bağlama (ör. `lucanacafe.com`)
 
 1. Domain sağlayıcısında DNS:
    - `A` kayıtları → `185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153`
-   - `www` için `CNAME` → `perpsfunds.github.io`
+   - `www` için `CNAME` → `lucanacafe.github.io`
 2. `public/CNAME` dosyası oluşturun, içine yalnızca `lucanacafe.com` yazın.
-3. Repo değişkenlerini güncelleyin: `VITE_BASE=/` ve `VITE_SITE_URL=https://lucanacafe.com/`
+3. Repo değişkeni `VITE_SITE_URL`'i güncelleyin: `https://lucanacafe.com/` (`VITE_BASE` zaten `/`)
 4. Repo → Settings → Pages → Custom domain: `lucanacafe.com`, **Enforce HTTPS** açın.
 5. Push edin. **QR kartlarını panelden yeniden yazdırın** (QR'lar site adresini içerir).
 
