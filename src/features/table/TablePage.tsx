@@ -29,15 +29,19 @@ export default function TablePage() {
   const [note, setNote] = useState("");
   const [sending, setSending] = useState(false);
   const [calling, setCalling] = useState<CallType | null>(null);
+  const [netError, setNetError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
+    setNetError(false);
     publicApi
       .table(code)
       .then((t) => {
         setTable(t);
         if (t) document.title = `${t.name} · Lucana`;
       })
-      .catch(() => setTable(null));
+      // Ağ hatası "geçersiz QR" değildir: tekrar deneme ekranı göster
+      .catch(() => setNetError(true));
     publicApi
       .menu()
       .then((m) => {
@@ -46,7 +50,7 @@ export default function TablePage() {
       })
       .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [code]);
+  }, [code, attempt]);
 
   const track = useLive(() => publicApi.track(code, device), {
     topic: table ? `lucana-t-${table.id}` : null,
@@ -76,6 +80,16 @@ export default function TablePage() {
     }
   }, [orders]);
 
+  if (netError && table === undefined) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-5 px-6 text-center">
+        <Logo className="text-7xl" />
+        <h1 className="font-display text-3xl">Bağlantı kurulamadı</h1>
+        <p className="max-w-sm text-smoke-400">İnternet bağlantınızı kontrol edip tekrar deneyin.</p>
+        <Button onClick={() => setAttempt((a) => a + 1)}>Tekrar dene</Button>
+      </div>
+    );
+  }
   if (table === undefined) return <PageLoader />;
   if (table === null) {
     return (
