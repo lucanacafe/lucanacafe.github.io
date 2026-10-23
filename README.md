@@ -28,12 +28,26 @@ Lucana'nın web sitesi, QR menüsü, masadan sipariş sistemi ve yönetim paneli
   - Onaylanmamış siparişi 2 dk içinde iptal
   - Wi-Fi bilgisi (yalnızca QR okutanlara)
 
+### Üyelik, puan ve sosyal özellikler
+- **Tek dokunuşla üyelik:** Masadaki QR okutulunca açılan ekranda tek onay kutusu (18+, Kullanım Koşulları, KVKK Aydınlatma Metni, Puan & Oyun Koşulları) → "Başla". Rastgele takma ad, form/şifre yok. Kampanya bildirimleri ayrı ve isteğe bağlı açık rıza.
+- **Çift hesap yok:** Geçerli oturum varken sunucu yeni hesap açmaz. İsteğe bağlı kullanıcı adı + şifre ile hesap "kaydedilir"; başka cihazdan girişte o cihazdaki boş anonim hesap silinir.
+- **Sadakat puanı (BigLoft modeli, %10 iade):** 1 ₺ NET ödeme = 10 puan, 100 puan = 1 ₺ indirim, sepetin en fazla %50'si. Puan ödenince kazanılır, iptalde harcanan puan iade edilir. Her hareket `points_ledger`'da; (tür, referans) benzersiz → çift kazanım/harcama imkânsız.
+- **Sosyal:** Masada kimler var + kim ne sipariş etti, canlı akış (sipariş, masaya oturma, büyük hasat), liderlik tablosu (haftalık, tüm zamanlar, Bahçe, Blok). Görünmez mod.
+- **Profil:** Takma ad/simge, puan geçmişi, hesabı kaydet, bildirimler, uygulamayı yükle, KVKK: hesabımı sil.
+- **Uyarılar:** Üyelikten sonra "Bildirimleri aç" ve "Ana ekrana ekle" kartları (iPhone için talimat).
+
+### Oyunlar (şans oyunu YOK)
+Türkiye mevzuatı gereği (TCK 228) bahis ve sonucu talihe bağlı oyunlar **bilinçli olarak yoktur**:
+- **Lucana Bahçesi** (FarmVille tarzı): tohum ek → sabit süre → sabit hasat. Ürün maliyeti, süresi ve verimi önceden belli. Komşunun büyüyen ürününü sulamak onu %15 hızlandırır, sulayana teşekkür puanı verir. Seviye atladıkça yeni ürünler açılır, puanla yeni tarla alınır.
+- **Lucana Blok** (Tetris): beceri oyunu, bahissiz; ödül satır sayısına bağlı.
+- **Ödül havuzu:** Oyunların dağıttığı tüm puan admin'in doldurduğu havuzdan çıkar; tohum/tarla bedelleri havuza döner. Kişi başı günlük tavanlar (hasat kârı, sulama, Blok) Ayarlar'dan belirlenir.
+
 ### Yönetim paneli (`/panel`)
 | Sayfa | İçerik |
 |---|---|
 | Özet | Günlük ciro, aktif sipariş, dolu masa, açık çağrı, 7 günlük grafik, en çok satanlar, kritik stok |
 | Siparişler | Canlı kanban panosu (zil sesi + bildirim), panelden sipariş girme, ödeme, iptal (stok iadeli), gün geçmişi |
-| Masalar | Canlı masa haritası, bekleyen çağrılar, masa hesabını kapatma (nakit/kart) |
+| Masalar | Canlı masa haritası, masadaki kişi sayısı ve kimler oturuyor, bekleyen çağrılar, masa hesabını kapatma (nakit/kart) |
 | Menü | Kategori/ürün ekle-düzenle, görsel yükleme (otomatik WebP), öne çıkarma, gizleme, sıralama |
 | Stok | Depo kalemleri (kömür, tütün, süt…), giriş/çıkış hareketleri, menü ürünü stok takibi, kritik seviye uyarısı |
 | Masa & QR | Masa ekle/toplu ekle, QR önizleme/PNG indirme, A4 QR kartı yazdırma, QR yenileme |
@@ -41,6 +55,8 @@ Lucana'nın web sitesi, QR menüsü, masadan sipariş sistemi ve yönetim paneli
 | Personel | Hesap açma, rol atama, şifre sıfırlama, pasife alma, tüm oturumları kapatma |
 | İşlem geçmişi | Kim, ne zaman, ne yaptı (audit log) |
 | Ayarlar | QR siparişi / çağrıları aç-kapa, işletme bilgileri, duyuru bandı, Wi-Fi |
+| Üyeler & Puan | Üye listesi, masada olanlar, harcama, puan geçmişi, puan ekle/düş, kısıtla |
+| Oyunlar & Havuz | Ödül havuzu bakiyesi, havuza ekle/çek, oyun hareketleri, dağıtılan net puan |
 | Hesabım | Şifre değiştirme, **bu cihazda bildirimleri aç/kapat**, test bildirimi |
 
 ---
@@ -95,9 +111,10 @@ src/
   styles/         Tailwind + tema
   types/
 supabase/
-  migrations/     0001 çekirdek+auth · 0002 müşteri RPC · 0003 panel RPC · 0004 seed · 0005 push · 9999 yetkiler
+  migrations/     0001 çekirdek+auth · 0002 müşteri RPC · 0003 panel RPC · 0004 seed · 0005 push · 0006 üyelik/puan/sosyal · 0007 ödül havuzu + Blok · 0008 üye push · 0009 Bahçe · 9999 yetkiler
   functions/      lucana-upload (görsel yükleme) · lucana-push (Web Push gönderici)
 scripts/
+  reset-test-data.sql  test verisini temizler (menü, masa, personel kalır)
   db.mjs          migration / şema açma / bucket / kurucu hesap (Management API)
   gen-icons.py    PWA ikonları + favicon + paylaşım görseli
   postbuild.mjs   GitHub Pages SPA desteği (404.html)
@@ -160,3 +177,9 @@ npx supabase functions deploy lucana-push   --no-verify-jwt --use-api --project-
 5. Push edin. **QR kartlarını panelden yeniden yazdırın** (QR'lar site adresini içerir).
 
 > İpucu: QR kartlarını domain bağlandıktan sonra basmak, yeniden basım maliyetini önler.
+
+---
+
+## iPhone uyumu
+
+Uygulama `viewport-fit=cover` ile çentik/Dynamic Island altına kadar uzanır; tüm sabit üst barlar `env(safe-area-inset-top)`, alt menüler `env(safe-area-inset-bottom)` kadar boşluk bırakır. Böylece butonlar çentiğin ya da ana ekran çubuğunun altında kalmaz. Bildirimler iPhone'da yalnızca "Ana Ekrana Ekle" ile yüklenmiş uygulamada çalışır (iOS 16.4+).

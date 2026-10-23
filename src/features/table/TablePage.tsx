@@ -1,25 +1,30 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, ChevronRight, Copy, Minus, Plus, Receipt, ShoppingBag, Trash2, Wifi } from "lucide-react";
+import { Check, ChevronRight, Copy, Gamepad2, Minus, Plus, Receipt, ShoppingBag, Sparkles, Trash2, Users, Wifi } from "lucide-react";
 import { toast } from "sonner";
 import { MenuBrowser } from "@/components/menu/MenuBrowser";
 import { Button, Modal, PageLoader } from "@/components/ui";
 import { Logo } from "@/components/ui/brand";
+import { CustomerHeader, CustomerShell } from "@/components/customer/CustomerChrome";
 import { useSite } from "@/app/SiteContext";
+import { useMember } from "@/features/member/MemberContext";
 import { useLive } from "@/hooks/useLive";
 import { publicApi } from "@/lib/api/public";
+import { memberApi } from "@/lib/api/member";
 import { CALL, STATUS } from "@/lib/constants";
-import { asset, cn, deviceId, fmtTime, money, telHref } from "@/lib/utils";
+import { saveLastTable } from "@/lib/lastTable";
+import { pushState, subscribeCustomer, type PushState } from "@/lib/push";
+import { asset, cn, deviceId, fmtTime, money, telHref, timeAgo } from "@/lib/utils";
 import type { CallType, MenuData, Order, TableInfo } from "@/types";
 import { useCart } from "./useCart";
-import { pushState, subscribeCustomer, type PushState } from "@/lib/push";
 
 const STEPS: Order["status"][] = ["new", "preparing", "served"];
 
 export default function TablePage() {
   const { code = "" } = useParams();
   const { settings } = useSite();
+  const { member, ready, ensure, refresh } = useMember();
   const device = useMemo(() => deviceId(), []);
   const [table, setTable] = useState<TableInfo | null | undefined>(undefined);
   const [menu, setMenu] = useState<MenuData | null>(publicApi.cachedMenu());
@@ -28,6 +33,7 @@ export default function TablePage() {
   const [ordersOpen, setOrdersOpen] = useState(false);
   const [wifiOpen, setWifiOpen] = useState(false);
   const [note, setNote] = useState("");
+  const [discount, setDiscount] = useState(0);
   const [sending, setSending] = useState(false);
   const [calling, setCalling] = useState<CallType | null>(null);
   const [netError, setNetError] = useState(false);
@@ -39,7 +45,10 @@ export default function TablePage() {
       .table(code)
       .then((t) => {
         setTable(t);
-        if (t) document.title = `${t.name} · Lucana`;
+        if (t) {
+          document.title = `${t.name} · Lucana`;
+          saveLastTable(code, t.name);
+        }
       })
       // Ağ hatası "geçersiz QR" değildir: tekrar deneme ekranı göster
       .catch(() => setNetError(true));
@@ -53,10 +62,25 @@ export default function TablePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code, attempt]);
 
+  // QR okutulunca: üye yoksa tek dokunuşluk hesap ekranı, varsa masaya "otur"
+  useEffect(() => {
+    if (!table || !ready) return;
+    if (!member) {
+      ensure().catch(() => {});
+      return;
+    }
+    memberApi.checkin(code).catch(() => {});
+  }, [table, ready, member, code, ensure]);
+
   const track = useLive(() => publicApi.track(code, device), {
     topic: table ? `lucana-t-${table.id}` : null,
     interval: 10000,
     enabled: !!table,
+  });
+  const social = useLive(() => memberApi.tableState(code), {
+    topic: table ? `lucana-t-${table.id}` : null,
+    interval: 20000,
+    enabled: !!table && !!member,
   });
   const orders = track.data?.orders ?? [];
   const openCalls = new Set((track.data?.calls ?? []).map((c) => c.type));
@@ -71,15 +95,25 @@ export default function TablePage() {
         const msg =
           o.status === "preparing" ? "Siparişiniz hazırlanıyor 👨‍🍳" :
           o.status === "served" ? "Siparişiniz servis edildi, afiyet olsun ✨" :
+          o.status === "paid" && o.points_earned ? `Ödendi — +${o.points_earned} puan kazandın ⭐` :
           o.status === "cancelled" ? "Siparişiniz iptal edildi" : null;
         if (msg) {
           toast(msg, { description: `Sipariş #${o.no}` });
           navigator.vibrate?.(150);
+          if (o.status === "paid") refresh();
         }
       }
       prevStatus.current[o.id] = o.status;
     }
-  }, [orders]);
+  }, [orders, refresh]);
+
+  // Puan indirimi: bakiye ve sepet tavanı (sunucu da aynı kuralla yeniden hesaplar)
+  const maxDiscount = member
+    ? Math.max(0, Math.min(Math.floor(member.points / member.rates.redeem), Math.floor((cart.total * member.rates.max_discount_pct) / 100)))
+    : 0;
+  useEffect(() => {
+    if (discount > maxDiscount) setDiscount(maxDiscount);
+  }, [discount, maxDiscount]);
 
   if (netError && table === undefined) {
     return (
@@ -106,6 +140,7 @@ export default function TablePage() {
   }
 
   const canOrder = table.ordering_enabled;
+  const people = social.data?.people ?? [];
 
   async function sendOrder() {
     if (!cart.lines.length) return;
@@ -116,12 +151,18 @@ export default function TablePage() {
         device,
         cart.lines.map((l) => ({ id: l.id, qty: l.qty, note: l.note })),
         note,
+        discount,
       );
       cart.clear();
       setNote("");
+      setDiscount(0);
       setCartOpen(false);
-      toast.success(`Siparişiniz alındı! #${res.no}`, { description: "Mutfağa iletildi, durumunu buradan takip edebilirsiniz." });
+      toast.success(`Siparişiniz alındı! #${res.no}`, {
+        description: res.discount ? `${money(res.discount)} puan indirimi uygulandı.` : "Mutfağa iletildi, durumunu buradan takip edebilirsiniz.",
+      });
+      refresh();
       await track.reload();
+      social.reload();
       setOrdersOpen(true);
     } catch (e) {
       toast.error((e as Error).message);
@@ -150,30 +191,28 @@ export default function TablePage() {
   }
 
   return (
-    <div className="min-h-screen pb-32">
-      {/* Başlık */}
-      <header className="sticky top-0 z-40 glass border-x-0 border-t-0">
-        <div className="container flex h-14 items-center justify-between gap-3">
-          <span className="text-3xl"><Logo sub={false} /></span>
-          <div className="flex items-center gap-2">
-            {table.wifi_name && (
-              <button onClick={() => setWifiOpen(true)} className="rounded-full border border-white/10 p-2 text-gold-200" aria-label="Wi-Fi">
-                <Wifi className="h-4 w-4" />
-              </button>
-            )}
-            <span className="rounded-full border border-gold-400/30 bg-gold-400/10 px-3 py-1 text-sm font-semibold text-gold-100">
-              {table.name}
-            </span>
-          </div>
-        </div>
-      </header>
-
+    <CustomerShell
+      header={
+        <CustomerHeader
+          right={
+            <>
+              {table.wifi_name && (
+                <button onClick={() => setWifiOpen(true)} className="rounded-full border border-white/10 p-2 text-gold-200" aria-label="Wi-Fi">
+                  <Wifi className="h-4 w-4" />
+                </button>
+              )}
+              <span className="rounded-full border border-white/10 px-3 py-1 text-sm font-semibold text-smoke-100">{table.name}</span>
+            </>
+          }
+        />
+      }
+    >
       <main className="container">
         {/* Karşılama + hızlı çağrılar */}
-        <section className="pt-6">
-          <p className="eyebrow">Hoş geldiniz</p>
+        <section className="pt-5">
+          <p className="eyebrow">Hoş geldin{member ? `, ${member.nickname}` : ""}</p>
           <h1 className="mt-1 font-display text-4xl font-semibold leading-tight">
-            Keyfiniz <span className="text-gold italic">bizden</span>
+            Keyfin <span className="text-gold italic">bizden</span>
           </h1>
           {table.calls_enabled && (
             <div className="mt-5 grid grid-cols-3 gap-2.5">
@@ -204,23 +243,36 @@ export default function TablePage() {
           )}
 
           {activeOrders.length > 0 && (
-            <button
-              onClick={() => setOrdersOpen(true)}
-              className="card mt-4 flex w-full items-center gap-3 p-4 text-left"
-            >
+            <button onClick={() => setOrdersOpen(true)} className="card mt-4 flex w-full items-center gap-3 p-4 text-left">
               <span className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gold-400/10 text-gold-200">
                 <Receipt className="h-5 w-5" />
                 <span className="absolute -right-1 -top-1 h-3 w-3 animate-pulse-ring rounded-full bg-ember-400" />
               </span>
               <span className="flex-1">
                 <span className="block font-semibold">Siparişlerim ({activeOrders.length})</span>
-                <span className="text-sm text-smoke-400">
-                  Son durum: {STATUS[activeOrders[0].status].label}
-                </span>
+                <span className="text-sm text-smoke-400">Son durum: {STATUS[activeOrders[0].status].label}</span>
               </span>
               <ChevronRight className="h-5 w-5 text-smoke-500" />
             </button>
           )}
+
+          {/* Masadakiler + kim ne söyledi */}
+          {member && people.length > 0 && <TableSocial state={social.data!} />}
+
+          {/* Puan / oyun teaser */}
+          {member && (
+            <Link to="/oyun/bahce" className="mt-4 flex items-center gap-3 rounded-2xl border border-emerald-500/25 bg-gradient-to-r from-emerald-500/15 via-night-800 to-transparent p-4">
+              <Gamepad2 className="h-6 w-6 shrink-0 text-emerald-300" />
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold">⭐ {member.points.toLocaleString("tr-TR")} puanın var</span>
+                <span className="text-xs text-smoke-400">
+                  {member.points >= member.rates.redeem ? `${money(member.discount_value)} indirim olarak kullanabilirsin · Bahçende hasat seni bekliyor` : `Her 1 ₺ = ${member.rates.earn} puan · Bahçeni kur, ücretsiz nane ek 🌿`}
+                </span>
+              </span>
+              <ChevronRight className="h-5 w-5 text-smoke-500" />
+            </Link>
+          )}
+
           {!canOrder && (
             <p className="mt-4 rounded-2xl border border-gold-400/20 bg-gold-400/5 p-4 text-sm text-gold-100">
               Şu an QR ile sipariş alınmıyor. Menüye göz atıp garsonumuzu çağırabilirsiniz.
@@ -250,18 +302,18 @@ export default function TablePage() {
         </div>
       </main>
 
-      {/* Alt sepet çubuğu */}
+      {/* Sepet çubuğu (alt menünün üstünde) */}
       <AnimatePresence>
         {cart.count > 0 && (
           <motion.div
             initial={{ y: 100 }}
             animate={{ y: 0 }}
             exit={{ y: 100 }}
-            className="fixed inset-x-0 bottom-0 z-40 p-3 pb-safe"
+            className="fixed inset-x-0 bottom-[calc(var(--safe-bottom)+4.25rem)] z-40 px-3"
           >
             <button
               onClick={() => setCartOpen(true)}
-              className="container flex h-16 items-center gap-4 rounded-2xl bg-gold-sheen px-5 text-night-950 shadow-glow"
+              className="container flex h-14 items-center gap-4 rounded-2xl bg-gold-sheen px-5 text-night-950 shadow-glow"
             >
               <span className="relative">
                 <ShoppingBag className="h-6 w-6" />
@@ -283,14 +335,22 @@ export default function TablePage() {
         title="Sepetiniz"
         footer={
           <div className="space-y-3">
+            {discount > 0 && (
+              <div className="flex items-center justify-between text-sm text-emerald-300">
+                <span>Puan indirimi ({(discount * (member?.rates.redeem ?? 0)).toLocaleString("tr-TR")} puan)</span>
+                <span>−{money(discount)}</span>
+              </div>
+            )}
             <div className="flex items-center justify-between text-lg">
-              <span className="text-smoke-300">Toplam</span>
-              <span className="font-bold text-gold-200">{money(cart.total)}</span>
+              <span className="text-smoke-300">Ödenecek</span>
+              <span className="font-bold text-gold-200">{money(cart.total - discount)}</span>
             </div>
             <Button size="lg" className="w-full" loading={sending} onClick={sendOrder} disabled={!cart.count}>
               Siparişi gönder · {table.name}
             </Button>
-            <p className="text-center text-xs text-smoke-500">Ödeme masada, garsonumuza yapılır.</p>
+            <p className="text-center text-xs text-smoke-500">
+              Ödeme masada yapılır.{member && ` Bu siparişten ~${Math.floor((cart.total - discount) * member.rates.earn).toLocaleString("tr-TR")} puan kazanacaksın.`}
+            </p>
           </div>
         }
       >
@@ -303,7 +363,7 @@ export default function TablePage() {
                 {l.image_url ? (
                   <img src={asset(l.image_url)!} alt="" className="h-14 w-14 rounded-xl object-cover" />
                 ) : (
-                  <div className="h-14 w-14 rounded-xl bg-night-700" />
+                  <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-night-700 text-xl">🍽️</div>
                 )}
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-semibold">{l.name}</p>
@@ -321,7 +381,34 @@ export default function TablePage() {
                 </div>
               </div>
             ))}
-            <label className="block pt-2">
+
+            {member && maxDiscount > 0 && (
+              <div className="rounded-2xl border border-gold-400/25 bg-gold-400/[0.06] p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="flex items-center gap-2 text-sm font-semibold text-gold-100">
+                    <Sparkles className="h-4 w-4" /> Puanını indirime çevir
+                  </span>
+                  <span className="text-sm font-bold text-emerald-300">−{money(discount)}</span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={maxDiscount}
+                  step={1}
+                  value={discount}
+                  onChange={(e) => setDiscount(Number(e.target.value))}
+                  className="mt-3 w-full accent-[#e8c170]"
+                />
+                <div className="mt-1 flex justify-between text-[11px] text-smoke-500">
+                  <span>⭐ {member.points.toLocaleString("tr-TR")} puan</span>
+                  <button className="font-semibold text-gold-200" onClick={() => setDiscount(maxDiscount)}>
+                    En fazla: {money(maxDiscount)}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <label className="block pt-1">
               <span className="label">Sipariş notu</span>
               <textarea
                 className="input"
@@ -352,6 +439,7 @@ export default function TablePage() {
                     await publicApi.cancelOwn(code, device, o.id);
                     toast("Sipariş iptal edildi");
                     track.reload();
+                    refresh();
                   } catch (e) {
                     toast.error((e as Error).message);
                   }
@@ -387,6 +475,56 @@ export default function TablePage() {
           )}
         </div>
       </Modal>
+    </CustomerShell>
+  );
+}
+
+/** Masadakiler + masada kim ne sipariş etti */
+function TableSocial({ state }: { state: NonNullable<Awaited<ReturnType<typeof memberApi.tableState>>> }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="card mt-4 p-4">
+      <button className="flex w-full items-center gap-3 text-left" onClick={() => setOpen((o) => !o)}>
+        <Users className="h-5 w-5 shrink-0 text-gold-300" />
+        <span className="flex -space-x-2">
+          {state.people.slice(0, 6).map((p, i) => (
+            <span key={i} className={cn("flex h-8 w-8 items-center justify-center rounded-full border-2 border-night-800 bg-night-700 text-sm", p.me && "border-gold-300")}>
+              {p.avatar}
+            </span>
+          ))}
+        </span>
+        <span className="min-w-0 flex-1 text-sm">
+          <b>{state.people.length} kişi</b> <span className="text-smoke-400">bu masada</span>
+        </span>
+        <ChevronRight className={cn("h-4 w-4 text-smoke-500 transition", open && "rotate-90")} />
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {state.people.map((p, i) => (
+                <span key={i} className={cn("rounded-full bg-white/5 px-2.5 py-1 text-xs", p.me && "bg-gold-400/15 text-gold-100")}>
+                  {p.avatar} {p.nickname ?? "Gizli misafir"}{p.me && " (sen)"}
+                </span>
+              ))}
+            </div>
+            {state.orders.length > 0 && (
+              <ul className="mt-3 space-y-2 border-t hairline pt-3">
+                {state.orders.map((o, i) => (
+                  <li key={i} className="flex gap-2 text-sm">
+                    <span>{o.avatar}</span>
+                    <span className="min-w-0 flex-1">
+                      <b className={cn(o.me && "text-gold-200")}>{o.me ? "Sen" : o.nickname}</b>{" "}
+                      <span className="text-smoke-300">{o.items}</span>
+                    </span>
+                    <span className="shrink-0 text-xs text-smoke-500">{timeAgo(o.created_at)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -425,10 +563,18 @@ function OrderTrackCard({ order, onCancel }: { order: Order; onCancel: () => voi
             <span>{money(it.qty * it.unit_price)}</span>
           </li>
         ))}
+        {Number(order.points_discount) > 0 && (
+          <li className="flex justify-between text-emerald-300">
+            <span>Puan indirimi</span>
+            <span>−{money(order.points_discount)}</span>
+          </li>
+        )}
       </ul>
       <div className="mt-3 flex items-center justify-between border-t hairline pt-3">
         {canCancel ? (
           <button onClick={onCancel} className="text-sm text-wine-400 hover:underline">Siparişi iptal et</button>
+        ) : order.points_earned ? (
+          <span className="text-xs font-semibold text-gold-200">+{order.points_earned} puan kazandın ⭐</span>
         ) : (
           <span />
         )}

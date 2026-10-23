@@ -21,6 +21,9 @@ export function MenuBrowser({ menu, onAdd, qtyOf, stickyTop = 0 }: Props) {
   const [detail, setDetail] = useState<MenuItem | null>(null);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
   const tabsRef = useRef<HTMLDivElement>(null);
+  const barRef = useRef<HTMLDivElement>(null);
+  // Yapışkan arama/sekme çubuğunun alt kenarı (iPhone çentiği dahil gerçek ölçüm)
+  const barBottom = () => barRef.current?.getBoundingClientRect().bottom ?? stickyTop + 110;
   const lockSpy = useRef(false);
 
   const byCat = useMemo(() => {
@@ -46,7 +49,7 @@ export function MenuBrowser({ menu, onAdd, qtyOf, stickyTop = 0 }: Props) {
         let current: string | null = null;
         for (const c of visibleCats) {
           const el = sectionRefs.current[c.id];
-          if (el && el.getBoundingClientRect().top <= stickyTop + 150) current = c.id;
+          if (el && el.getBoundingClientRect().top <= barBottom() + 40) current = c.id;
         }
         setActive(current ?? visibleCats[0]?.id ?? null);
       });
@@ -68,13 +71,17 @@ export function MenuBrowser({ menu, onAdd, qtyOf, stickyTop = 0 }: Props) {
     setActive(id);
     lockSpy.current = true;
     const el = sectionRefs.current[id];
-    if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - stickyTop - 110, behavior: "smooth" });
+    if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - barBottom() - 12, behavior: "smooth" });
     setTimeout(() => (lockSpy.current = false), 800);
   };
 
   return (
     <div>
-      <div className="sticky z-30 -mx-4 bg-night-950/90 px-4 pb-3 pt-3 backdrop-blur-xl" style={{ top: stickyTop }}>
+      <div
+        ref={barRef}
+        className="sticky z-30 -mx-4 bg-night-950/90 px-4 pb-3 pt-3 backdrop-blur-xl"
+        style={{ top: `calc(${stickyTop}px + var(--safe-top))` }}
+      >
         <div className="relative">
           <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-smoke-500" />
           <input

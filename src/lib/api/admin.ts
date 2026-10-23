@@ -21,6 +21,45 @@ export interface LiveTable {
   open_total: number;
   since: string | null;
   calls: number;
+  people_count: number;
+  people: { id: string; nickname: string; avatar: string; points: number; since: string }[];
+}
+
+export interface MemberRow {
+  id: string;
+  nickname: string;
+  avatar: string;
+  username: string | null;
+  points: number;
+  lifetime_earned: number;
+  is_hidden: boolean;
+  is_banned: boolean;
+  marketing_ok: boolean;
+  created_at: string;
+  last_seen_at: string;
+  orders_paid: number;
+  spent: number;
+  game_net: number;
+  at_table: string | null;
+}
+
+export interface PoolStats {
+  seeds: number;
+  harvest: number;
+  help: number;
+  blok: number;
+  plots: number;
+  players: number;
+}
+
+export interface PoolInfo {
+  balance: number;
+  today: PoolStats;
+  week: PoolStats;
+  growing: number;
+  farmers: number;
+  ledger: { delta: number; reason: string; balance_after: number; at: string; staff: string | null }[];
+  recent: { kind: string; delta: number; note: string | null; at: string; nickname: string; avatar: string }[];
 }
 
 export interface TableRow {
@@ -178,6 +217,19 @@ export const adminApi = {
   staff: () => rpc<StaffRow[]>("adm_staff_list"),
   saveStaff: (p: Partial<StaffRow> & { password?: string }) => rpc<{ id: string }>("adm_staff_save", { p }),
   kickStaff: (id: string) => rpc("adm_staff_kick", { p_id: id }),
+
+  members: (q?: string) => rpc<MemberRow[]>("adm_members", { p_q: q ?? null, p_limit: 300 }),
+  memberDetail: (id: string) =>
+    rpc<{
+      member: import("./member").Member;
+      ledger: { delta: number; kind: string; note: string | null; balance_after: number | null; at: string; staff: string | null }[];
+    }>("adm_member_detail", { p_member: id }),
+  memberPoints: (id: string, delta: number, reason: string) =>
+    rpc("adm_member_points", { p_member: id, p_delta: delta, p_reason: reason }),
+  memberBan: (id: string, banned: boolean) => rpc("adm_member_ban", { p_member: id, p_banned: banned }),
+
+  pool: () => rpc<PoolInfo>("adm_pool"),
+  poolAdjust: (delta: number, reason: string) => rpc<{ balance: number }>("adm_pool_adjust", { p_delta: delta, p_reason: reason }),
 
   audit: (limit = 100, offset = 0, q?: string) =>
     rpc<AuditRow[]>("adm_audit", { p_limit: limit, p_offset: offset, p_q: q ?? null }),

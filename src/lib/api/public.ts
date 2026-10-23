@@ -36,12 +36,19 @@ export const publicApi = {
     return s;
   },
   table: (code: string) => rpc<TableInfo | null>("pub_table", { p_code: code }),
-  placeOrder: (code: string, device: string, items: { id: string; qty: number; note?: string }[], note?: string) =>
-    rpc<{ id: string; no: number; total: number }>("order_place", {
+  placeOrder: (
+    code: string,
+    device: string,
+    items: { id: string; qty: number; note?: string }[],
+    note?: string,
+    discountTl = 0,
+  ) =>
+    rpc<{ id: string; no: number; total: number; subtotal: number; discount: number; points_spent: number }>("order_place", {
       p_code: code,
       p_device: device,
       p_items: items,
       p_note: note || null,
+      p_discount_tl: discountTl,
     }),
   track: (code: string, device: string) =>
     rpc<{ orders: Order[]; calls: Call[] } | null>("order_track", { p_code: code, p_device: device }),

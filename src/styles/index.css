@@ -11,7 +11,13 @@
 @layer base {
   :root {
     color-scheme: dark;
+    --safe-top: env(safe-area-inset-top, 0px);
     --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  /* Modal açıkken arka plan kaydırma kilidi (bkz. lockScroll) */
+  html.scroll-locked,
+  html.scroll-locked body {
+    overflow: hidden;
   }
   html {
     -webkit-tap-highlight-color: transparent;
@@ -78,6 +84,9 @@
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { scrollbar-width: none; }
   .pb-safe { padding-bottom: calc(var(--safe-bottom) + 0.75rem); }
+  /* iPhone çentik / Dynamic Island: sabit üst barlar bunun altına iner */
+  .pt-safe { padding-top: var(--safe-top); }
+  .top-safe { top: var(--safe-top); }
 }
 
 /* Yazdırma: QR kartları */

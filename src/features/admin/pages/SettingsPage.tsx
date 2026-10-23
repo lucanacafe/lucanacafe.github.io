@@ -64,6 +64,52 @@ export default function SettingsPage() {
       </section>
 
       <section className="card grid gap-4 p-5 sm:grid-cols-2">
+        <h2 className="font-display text-xl font-semibold sm:col-span-2">Sadakat puanı</h2>
+        <Field label="Kazanma: 1 ₺ = ? puan" hint="Ödenen NET tutar üzerinden">
+          <input className="input" type="number" min={0} value={f.points_per_tl ?? 10} onChange={(e) => set("points_per_tl", Number(e.target.value))} />
+        </Field>
+        <Field label="Harcama: kaç puan = 1 ₺ indirim">
+          <input className="input" type="number" min={1} value={f.redeem_points_per_tl ?? 100} onChange={(e) => set("redeem_points_per_tl", Number(e.target.value))} />
+        </Field>
+        <Field label="Sepetin en fazla %'si puanla" hint="0 = puanla indirim kapalı">
+          <input className="input" type="number" min={0} max={100} value={f.max_discount_pct ?? 50} onChange={(e) => set("max_discount_pct", Number(e.target.value))} />
+        </Field>
+        <div className="self-end rounded-xl bg-white/[0.04] p-3 text-sm text-smoke-300">
+          Etkin iade oranı:{" "}
+          <b className="text-gold-100">%{(((f.points_per_tl ?? 10) / (f.redeem_points_per_tl ?? 100)) * 100).toFixed(1)}</b>
+          <span className="block text-xs text-smoke-500">100 ₺ harcayan {((f.points_per_tl ?? 10) * 100).toLocaleString("tr-TR")} puan kazanır</span>
+        </div>
+        <label className="flex items-center justify-between gap-4 sm:col-span-2">
+          <span>
+            <span className="block font-medium">Canlı sosyal akış</span>
+            <span className="text-sm text-smoke-500">“Kim ne sipariş etti / kim kazandı” akışı (görünmez moddakiler hariç)</span>
+          </span>
+          <Switch checked={f.social_feed_enabled !== false} onChange={(v) => set("social_feed_enabled", v)} disabled={!editable} />
+        </label>
+      </section>
+
+      <section className="card grid gap-4 p-5 sm:grid-cols-2">
+        <h2 className="font-display text-xl font-semibold sm:col-span-2">Oyunlar (Bahçe & Blok)</h2>
+        <label className="flex items-center justify-between gap-4 sm:col-span-2">
+          <span>
+            <span className="block font-medium">Oyunlar açık</span>
+            <span className="text-sm text-smoke-500">Şans oyunu yoktur. Kapatınca yeni ekim / oyun başlatılamaz, hasat yapılabilir.</span>
+          </span>
+          <Switch checked={f.games_enabled !== false} onChange={(v) => { set("games_enabled", v); save({ games_enabled: v }); }} disabled={!editable} />
+        </label>
+        <Field label="Bahçe: günlük hasat kârı tavanı" hint="Kişi başı 24 saatte hasattan en fazla bu kadar KÂR (tohum bedeli hep geri döner)">
+          <input className="input" type="number" min={0} value={f.farm_daily_cap ?? 300} onChange={(e) => set("farm_daily_cap", Number(e.target.value))} />
+        </Field>
+        <Field label="Bahçe: günlük sulama teşekkürü tavanı" hint="Komşu sulayarak 24 saatte en fazla">
+          <input className="input" type="number" min={0} value={f.help_daily_cap ?? 30} onChange={(e) => set("help_daily_cap", Number(e.target.value))} />
+        </Field>
+        <Field label="Blok (Tetris) günlük ödül tavanı" hint="Beceri oyunundan kişi başı 24 saatte en fazla">
+          <input className="input" type="number" min={0} value={f.skill_daily_cap ?? 150} onChange={(e) => set("skill_daily_cap", Number(e.target.value))} />
+        </Field>
+        <p className="self-end text-xs text-smoke-500">Ödül havuzu bakiyesi ve oyun istatistikleri: Oyunlar & Havuz sayfası.</p>
+      </section>
+
+      <section className="card grid gap-4 p-5 sm:grid-cols-2">
         <h2 className="font-display text-xl font-semibold sm:col-span-2">İşletme bilgileri</h2>
         <Field label="İşletme adı"><input className="input" value={f.name} onChange={(e) => set("name", e.target.value)} /></Field>
         <Field label="Telefon"><input className="input" value={f.phone} onChange={(e) => set("phone", e.target.value)} /></Field>

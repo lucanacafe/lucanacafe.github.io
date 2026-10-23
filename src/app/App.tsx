@@ -10,6 +10,12 @@ const MenuPage = lazy(() => import("@/features/site/MenuPage"));
 const TablePage = lazy(() => import("@/features/table/TablePage"));
 const AdminApp = lazy(() => import("@/features/admin/AdminApp"));
 const NotFound = lazy(() => import("@/features/site/NotFound"));
+const GamesHub = lazy(() => import("@/features/games/GamesHub"));
+const FarmGame = lazy(() => import("@/features/games/FarmGame"));
+const BlokGame = lazy(() => import("@/features/games/BlokGame"));
+const Leaderboard = lazy(() => import("@/features/social/Leaderboard"));
+const Profile = lazy(() => import("@/features/member/Profile"));
+const LegalPage = lazy(() => import("@/features/legal/LegalPage"));
 
 function ScrollTop() {
   const { pathname } = useLocation();
@@ -29,6 +35,14 @@ export default function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/menu" element={<MenuPage />} />
           <Route path="/m/:code" element={<TablePage />} />
+          <Route path="/oyun" element={<GamesHub />} />
+          <Route path="/oyun/bahce" element={<FarmGame />} />
+          <Route path="/oyun/bahce/:owner" element={<FarmGame />} />
+          <Route path="/oyun/blok" element={<BlokGame />} />
+          <Route path="/liderler" element={<Leaderboard />} />
+          <Route path="/profil" element={<Profile />} />
+          <Route path="/yasal" element={<LegalPage />} />
+          <Route path="/yasal/:doc" element={<LegalPage />} />
           <Route path="/panel/*" element={<AdminApp />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

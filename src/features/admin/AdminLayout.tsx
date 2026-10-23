@@ -12,6 +12,8 @@ import {
   QrCode,
   ScrollText,
   Settings,
+  Gamepad2,
+  Star,
   Table2,
   UserRound,
   Users,
@@ -45,6 +47,8 @@ const NAV: NavItem[] = [
   { to: "/panel/menu", label: "Menü", icon: BookOpen, min: 0, mobile: true },
   { to: "/panel/stok", label: "Stok", icon: Boxes, min: LEVEL.WAITER },
   { to: "/panel/qr", label: "Masa & QR", icon: QrCode, min: LEVEL.MANAGER },
+  { to: "/panel/uyeler", label: "Üyeler & Puan", icon: Star, min: LEVEL.CASHIER },
+  { to: "/panel/oyun", label: "Oyunlar & Havuz", icon: Gamepad2, min: LEVEL.CASHIER },
   { to: "/panel/rapor", label: "Raporlar", icon: BarChart3, min: LEVEL.CASHIER },
   { to: "/panel/personel", label: "Personel", icon: Users, min: LEVEL.MANAGER },
   { to: "/panel/gecmis", label: "İşlem geçmişi", icon: ScrollText, min: LEVEL.MANAGER },
@@ -94,7 +98,7 @@ function Inner({ children }: { children: ReactNode }) {
   };
 
   const sidebar = (onClick?: () => void) => (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col pt-safe pb-safe">
       <Link to="/panel" className="flex items-center gap-3 px-3 py-5" onClick={onClick}>
         <span className="text-4xl"><Logo sub={false} /></span>
         <span className="mt-2 rounded-md bg-white/5 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-smoke-400">
@@ -137,7 +141,7 @@ function Inner({ children }: { children: ReactNode }) {
               exit={{ x: -300 }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
             >
-              <button className="absolute right-3 top-5 p-1 text-smoke-400" onClick={() => setDrawer(false)} aria-label="Kapat">
+              <button className="absolute right-3 mt-[var(--safe-top)] top-5 p-1 text-smoke-400" onClick={() => setDrawer(false)} aria-label="Kapat">
                 <X className="h-5 w-5" />
               </button>
               {sidebar(() => setDrawer(false))}
@@ -146,7 +150,8 @@ function Inner({ children }: { children: ReactNode }) {
         )}
       </AnimatePresence>
 
-      <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b hairline bg-night-950/85 px-4 backdrop-blur-xl">
+      <header className="sticky top-0 z-20 border-b hairline bg-night-950/85 pt-safe backdrop-blur-xl">
+        <div className="flex h-14 items-center gap-3 px-4">
         <button className="rounded-lg p-1.5 lg:hidden" onClick={() => setDrawer(true)} aria-label="Menü">
           <MenuIcon className="h-5 w-5" />
         </button>
@@ -165,6 +170,7 @@ function Inner({ children }: { children: ReactNode }) {
         >
           {sound ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
         </button>
+        </div>
       </header>
 
       <main className="mx-auto max-w-7xl px-4 pb-28 pt-5 lg:px-8 lg:pb-10">

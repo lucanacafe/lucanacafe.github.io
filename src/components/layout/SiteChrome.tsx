@@ -6,13 +6,16 @@ import { toast } from "sonner";
 import { useSite } from "@/app/SiteContext";
 import { Button } from "@/components/ui";
 import { InstagramIcon, Logo } from "@/components/ui/brand";
+import { PointsChip } from "@/components/customer/CustomerChrome";
+import { useMember } from "@/features/member/MemberContext";
 import { usePwaInstall } from "@/hooks/usePwaInstall";
 import { openState } from "@/lib/hours";
 import { cn, telHref } from "@/lib/utils";
 
 const LINKS = [
-  { to: "/#deneyim", label: "Deneyim" },
   { to: "/menu", label: "Menü" },
+  { to: "/oyun", label: "Oyunlar" },
+  { to: "/liderler", label: "Liderler" },
   { to: "/#galeri", label: "Galeri" },
   { to: "/#iletisim", label: "İletişim" },
 ];
@@ -28,6 +31,7 @@ export function AnnouncementBar() {
 }
 
 export function SiteNav({ solid = false }: { solid?: boolean }) {
+  const { member } = useMember();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   useEffect(() => {
@@ -44,6 +48,7 @@ export function SiteNav({ solid = false }: { solid?: boolean }) {
         scrolled || solid || open ? "glass border-x-0 border-t-0 py-2" : "py-4",
       )}
     >
+      <div className="pt-safe" />
       <div className="container flex items-center justify-between gap-4">
         <Link to="/" className="text-[34px]" aria-label="Lucana ana sayfa" onClick={() => setOpen(false)}>
           <Logo sub={false} />
@@ -58,10 +63,15 @@ export function SiteNav({ solid = false }: { solid?: boolean }) {
               {l.label}
             </NavLink>
           ))}
-          <Link to="/menu" className="ml-2">
-            <Button size="sm">Menüyü Gör</Button>
-          </Link>
+          {member ? (
+            <PointsChip className="ml-2" />
+          ) : (
+            <Link to="/menu" className="ml-2">
+              <Button size="sm">Menüyü Gör</Button>
+            </Link>
+          )}
         </nav>
+        {member && <PointsChip className="md:hidden" />}
         <button
           className="rounded-xl p-2 text-smoke-100 md:hidden"
           onClick={() => setOpen((o) => !o)}
@@ -167,6 +177,8 @@ export function SiteFooter() {
           >
             <InstagramIcon className="h-4 w-4" /> @{settings.instagram}
           </a>
+          <Link to="/oyun" className="block text-smoke-300 hover:text-gold-200">Oyunlar & Puan</Link>
+          <Link to="/yasal/kvkk" className="block text-smoke-500 hover:text-smoke-300">KVKK & Koşullar</Link>
           <Link to="/panel" className="block text-smoke-500 hover:text-smoke-300">Personel girişi</Link>
         </div>
       </div>

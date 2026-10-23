@@ -18,6 +18,8 @@ const Staff = lazy(() => import("./pages/Staff"));
 const Audit = lazy(() => import("./pages/Audit"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const Account = lazy(() => import("./pages/Account"));
+const Members = lazy(() => import("./pages/Members"));
+const GamesAdmin = lazy(() => import("./pages/GamesAdmin"));
 
 function Guard({ min, children }: { min: number; children: JSX.Element }) {
   const { can } = useAuth();
@@ -54,6 +56,8 @@ function Shell() {
           <Route path="personel" element={<Guard min={LEVEL.MANAGER}><Staff /></Guard>} />
           <Route path="gecmis" element={<Guard min={LEVEL.MANAGER}><Audit /></Guard>} />
           <Route path="ayarlar" element={<Guard min={LEVEL.CASHIER}><SettingsPage /></Guard>} />
+          <Route path="uyeler" element={<Guard min={LEVEL.CASHIER}><Members /></Guard>} />
+          <Route path="oyun" element={<Guard min={LEVEL.CASHIER}><GamesAdmin /></Guard>} />
           <Route path="hesap" element={<Account />} />
           <Route path="*" element={<Navigate to="/panel" replace />} />
         </Routes>

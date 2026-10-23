@@ -8,6 +8,8 @@ import { InstagramIcon, ItemArt, Logo, Smoke } from "@/components/ui/brand";
 import { AnnouncementBar, OpenBadge, SiteFooter, SiteNav } from "@/components/layout/SiteChrome";
 import { publicApi } from "@/lib/api/public";
 import { asset, money, telHref, waHref } from "@/lib/utils";
+import { BackToTable } from "@/components/customer/CustomerChrome";
+import { GamesTeaser, LiveSection, LoyaltySection, StatsStrip } from "./sections";
 import type { MenuData } from "@/types";
 
 const img = (n: string) => asset(`images/${n}.webp`)!;
@@ -117,6 +119,7 @@ export default function Landing() {
                 <Phone className="h-4 w-4 text-gold-300" /> {settings.phone}
               </a>
             </div>
+            <StatsStrip />
           </motion.div>
         </div>
       </section>
@@ -176,6 +179,8 @@ export default function Landing() {
           ))}
         </div>
       </section>
+
+      <LiveSection />
 
       {/* ---------------------------------------------------------- KAMPANYA */}
       <section className="relative overflow-hidden border-y hairline">
@@ -248,6 +253,8 @@ export default function Landing() {
         </section>
       )}
 
+      <GamesTeaser />
+
       {/* ---------------------------------------------------------- QR */}
       <section className="border-y hairline bg-night-900/60">
         <div className="container py-24">
@@ -277,6 +284,8 @@ export default function Landing() {
           </div>
         </div>
       </section>
+
+      <LoyaltySection />
 
       {/* ---------------------------------------------------------- HAKKIMIZDA */}
       {settings.about && (
@@ -408,6 +417,7 @@ export default function Landing() {
       </section>
 
       <SiteFooter />
+      <BackToTable />
 
       {/* ---------------------------------------------------------- LIGHTBOX */}
       <AnimatePresence>
@@ -419,7 +429,7 @@ export default function Landing() {
             exit={{ opacity: 0 }}
             onClick={() => setLightbox(null)}
           >
-            <button className="absolute right-4 top-4 rounded-full bg-white/10 p-2" aria-label="Kapat">
+            <button className="absolute right-4 top-[calc(var(--safe-top)+1rem)] rounded-full bg-white/10 p-2" aria-label="Kapat">
               <X className="h-6 w-6" />
             </button>
             <motion.img

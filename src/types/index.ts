@@ -17,6 +17,15 @@ export interface Settings {
   currency: string;
   wifi_name?: string;
   wifi_pass?: string;
+  // sadakat & oyun
+  points_per_tl?: number;
+  redeem_points_per_tl?: number;
+  max_discount_pct?: number;
+  social_feed_enabled?: boolean;
+  games_enabled?: boolean;
+  skill_daily_cap?: number;
+  farm_daily_cap?: number;
+  help_daily_cap?: number;
 }
 
 export interface Category {
@@ -79,6 +88,11 @@ export interface Order {
   created_at: string;
   updated_at: string;
   items: OrderLine[];
+  subtotal?: number;
+  points_discount?: number;
+  points_spent?: number;
+  points_earned?: number;
+  member?: { id: string; nickname: string; avatar: string } | null;
   // panel
   biz_day?: string;
   source?: "qr" | "staff";

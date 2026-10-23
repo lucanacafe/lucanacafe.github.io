@@ -120,7 +120,7 @@ export function OrderCard({ order, compact }: { order: Order; compact?: boolean 
           </p>
           <p className="mt-1 flex items-center gap-2 text-xs text-smoke-500">
             {order.source === "qr" ? <QrCode className="h-3 w-3" /> : <UserRound className="h-3 w-3" />}
-            {order.source === "qr" ? "QR" : order.created_by}
+            {order.source === "qr" ? (order.member ? `${order.member.avatar} ${order.member.nickname}` : "QR") : order.created_by}
             <span>·</span>
             <Clock className="h-3 w-3" /> {fmtTime(order.created_at)}
           </p>
@@ -138,6 +138,11 @@ export function OrderCard({ order, compact }: { order: Order; compact?: boolean 
         ))}
       </ul>
       {order.note && <p className="mt-2 rounded-lg bg-ember-500/10 px-2.5 py-1.5 text-sm text-ember-200">📝 {order.note}</p>}
+      {Number(order.points_discount) > 0 && (
+        <p className="mt-2 rounded-lg bg-emerald-500/10 px-2.5 py-1.5 text-xs text-emerald-300">
+          ⭐ Puan indirimi −{money(order.points_discount)} (ara toplam {money(order.subtotal)})
+        </p>
+      )}
       {!compact && (
         <div className="mt-3 flex flex-wrap items-center gap-2 border-t hairline pt-3">
           <span className="mr-auto whitespace-nowrap font-bold text-gold-100">{money(order.total)}</span>

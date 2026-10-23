@@ -65,6 +65,17 @@ export async function subscribeStaff() {
   await rpc("staff_push_subscribe", { p_endpoint: s.endpoint, p_p256dh: s.keys.p256dh, p_auth: s.keys.auth });
 }
 
+/** Üye: masa kodu olmadan (profil/oyun sayfası) — sipariş durumu + puan bildirimleri */
+export async function subscribeMember(device: string) {
+  const s = await subscribeRaw();
+  await rpc("mem_push_subscribe", {
+    p_device: device,
+    p_endpoint: s.endpoint,
+    p_p256dh: s.keys.p256dh,
+    p_auth: s.keys.auth,
+  });
+}
+
 export async function subscribeCustomer(code: string, device: string) {
   const s = await subscribeRaw();
   await rpc("pub_push_subscribe", {

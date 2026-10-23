@@ -9,31 +9,41 @@ if (!isConfigured) {
 }
 
 export const TOKEN_KEY = "lucana.staff_token";
+export const MEMBER_KEY = "lucana.member_token";
 
-export const sessionToken = {
-  get: () => {
-    try {
-      return localStorage.getItem(TOKEN_KEY);
-    } catch {
-      return null;
-    }
-  },
-  set: (t: string | null) => {
-    try {
-      if (t) localStorage.setItem(TOKEN_KEY, t);
-      else localStorage.removeItem(TOKEN_KEY);
-    } catch {
-      /* gizli sekme vb. */
-    }
-  },
-};
+function tokenStore(key: string) {
+  return {
+    get: () => {
+      try {
+        return localStorage.getItem(key);
+      } catch {
+        return null;
+      }
+    },
+    set: (t: string | null) => {
+      try {
+        if (t) localStorage.setItem(key, t);
+        else localStorage.removeItem(key);
+      } catch {
+        /* gizli sekme vb. */
+      }
+    },
+  };
+}
 
-// Özel auth: her isteğe personel token'ı "x-session-token" header'ı olarak eklenir.
-// Sunucudaki RPC'ler bu header'ı okuyup oturumu ve yetki seviyesini doğrular.
+/** Personel oturumu (panel) */
+export const sessionToken = tokenStore(TOKEN_KEY);
+/** Müşteri üyelik oturumu (QR ile otomatik açılan hesap) */
+export const memberToken = tokenStore(MEMBER_KEY);
+
+// Özel auth: personel token'ı "x-session-token", üye token'ı "x-member-token"
+// header'ı ile gider. Sunucudaki RPC'ler bunları okuyup oturumu ve yetkiyi doğrular.
 const customFetch: typeof fetch = (input, init = {}) => {
-  const token = sessionToken.get();
   const headers = new Headers(init.headers);
-  if (token) headers.set("x-session-token", token);
+  const staff = sessionToken.get();
+  const member = memberToken.get();
+  if (staff) headers.set("x-session-token", staff);
+  if (member) headers.set("x-member-token", member);
   return fetch(input, { ...init, headers });
 };
 
@@ -56,6 +66,11 @@ export class ApiError extends Error {
 export async function rpc<T>(fn: string, args: Record<string, unknown> = {}): Promise<T> {
   const { data, error } = await supabase.rpc(fn, args);
   if (error) {
+    if (error.message === "MEMBER_REQUIRED") {
+      memberToken.set(null);
+      window.dispatchEvent(new CustomEvent("lucana:member", { detail: "expired" }));
+      throw new ApiError("Üyelik oturumun bulunamadı, lütfen tekrar başla.", error.message);
+    }
     if (error.message === "AUTH_REQUIRED" || error.message === "PASSWORD_CHANGE_REQUIRED") {
       window.dispatchEvent(new CustomEvent("lucana:auth", { detail: error.message }));
       throw new ApiError(

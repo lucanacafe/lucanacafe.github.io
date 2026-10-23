@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { forwardRef, useEffect, useRef, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Loader2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -110,6 +110,22 @@ export function Switch({
   );
 }
 
+/* ---------------------------------------------------------------- Scroll kilidi */
+// Sayaçlı kilit: iç içe modal'lar hangi sırayla kapanırsa kapansın sayfa
+// asla kilitli kalmaz (eski "önceki değeri geri yükle" yöntemi takılıyordu).
+let scrollLocks = 0;
+export function lockScroll() {
+  scrollLocks++;
+  document.documentElement.classList.add("scroll-locked");
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    scrollLocks = Math.max(0, scrollLocks - 1);
+    if (scrollLocks === 0) document.documentElement.classList.remove("scroll-locked");
+  };
+}
+
 /* ---------------------------------------------------------------- Modal / Sheet */
 export function Modal({
   open,
@@ -118,6 +134,7 @@ export function Modal({
   children,
   footer,
   size = "md",
+  layer = 60,
 }: {
   open: boolean;
   onClose: () => void;
@@ -125,25 +142,29 @@ export function Modal({
   children: ReactNode;
   footer?: ReactNode;
   size?: "sm" | "md" | "lg" | "xl";
+  /** z-index (tam ekran katmanların üstünde açılacaksa yükseltin) */
+  layer?: number;
 }) {
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && closeRef.current();
     window.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const release = lockScroll();
     return () => {
       window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
+      release();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   const w = { sm: "sm:max-w-sm", md: "sm:max-w-lg", lg: "sm:max-w-2xl", xl: "sm:max-w-4xl" }[size];
 
   return (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-[60] flex items-end justify-center sm:items-center sm:p-4">
+        <div className="fixed inset-0 flex items-end justify-center sm:items-center sm:p-4" style={{ zIndex: layer }}>
           <motion.div
             className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             initial={{ opacity: 0 }}
@@ -155,7 +176,7 @@ export function Modal({
             role="dialog"
             aria-modal="true"
             className={cn(
-              "relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-3xl border border-white/10 bg-night-850 shadow-2xl sm:rounded-3xl",
+              "relative flex max-h-[calc(100dvh-env(safe-area-inset-top)-12px)] w-full flex-col overflow-hidden rounded-t-3xl border border-white/10 bg-night-850 shadow-2xl sm:rounded-3xl",
               w,
             )}
             initial={{ y: 40, opacity: 0 }}
@@ -172,8 +193,12 @@ export function Modal({
                 </button>
               </div>
             )}
-            <div className="flex-1 overflow-y-auto px-5 py-4">{children}</div>
-            {footer && <div className="border-t hairline bg-night-900/60 px-5 py-3 pb-safe">{footer}</div>}
+            <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-4">{children}</div>
+            {footer ? (
+              <div className="border-t hairline bg-night-900/60 px-5 py-3 pb-safe">{footer}</div>
+            ) : (
+              <div className="pb-safe" />
+            )}
           </motion.div>
         </div>
       )}

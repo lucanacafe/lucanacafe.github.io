@@ -73,6 +73,16 @@ export default function Tables() {
                     )}
                   >
                     <span className="font-display text-2xl font-semibold">{t.name}</span>
+                    {t.people_count > 0 && (
+                      <span className="mt-1 flex items-center gap-1 text-xs text-emerald-300">
+                        <span className="flex -space-x-1.5">
+                          {t.people.slice(0, 4).map((p) => (
+                            <span key={p.id} className="flex h-5 w-5 items-center justify-center rounded-full bg-night-700 text-[11px] ring-1 ring-night-800">{p.avatar}</span>
+                          ))}
+                        </span>
+                        {t.people_count} kişi
+                      </span>
+                    )}
                     {busy ? (
                       <>
                         <span className="mt-auto text-lg font-bold text-gold-200">{money(t.open_total)}</span>
@@ -158,6 +168,19 @@ function TableDetail({
                 {CALL[c.type].emoji} {CALL[c.type].label} · {timeAgo(c.created_at)}
               </span>
             ))}
+          </div>
+        )}
+        {table.people_count > 0 && (
+          <div className="mb-4 rounded-2xl border hairline p-3">
+            <p className="label">Masadakiler ({table.people_count})</p>
+            <div className="flex flex-wrap gap-2">
+              {table.people.map((p) => (
+                <span key={p.id} className="rounded-full bg-white/5 px-3 py-1 text-sm">
+                  {p.avatar} {p.nickname} <span className="text-xs text-gold-200">⭐{p.points}</span>
+                  <span className="ml-1 text-xs text-smoke-500">{timeAgo(p.since)}</span>
+                </span>
+              ))}
+            </div>
           </div>
         )}
         {orders.length === 0 ? (
