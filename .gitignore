@@ -1,0 +1,10 @@
+node_modules
+dist
+.env
+.env.local
+*.local
+*.local.*
+# Ham Instagram dışa aktarımı (görseller public/images'a optimize edilerek alındı)
+Instagram.html
+Instagram_files/
+supabase/.temp
